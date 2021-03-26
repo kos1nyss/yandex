@@ -172,21 +172,23 @@ class AssignOrders(Resource):
         courier = db_sess.query(Courier).filter(Courier.courier_id == c_id).first()
         if not courier:
             return {}, 400
-        courier_type = db_sess.query(Type).filter(Type.id == courier.courier_type).first()
-        available_weight = courier_type.weight
-        orders = db_sess.query(Order).filter(Order.owner_id == courier.courier_id).all()
-        if not orders:
+        assign = db_sess.query(Assign).filter(Assign.owner_id == courier.courier_id,
+                                              Assign.status.is_(False)).first()
+        if not assign:
+            courier_type = db_sess.query(Type).filter(Type.id == courier.courier_type).first()
+            available_weight = courier_type.weight
+
             new_orders = db_sess.query(Order).filter(Order.status == 0,
                                                      Order.weight <= courier_type.weight,
                                                      Order.region.in_(courier.regions), ).all()
             correct_orders = []
             if not new_orders:
                 return {'orders': []}
-            assign = Assign(owner_id=courier.courier_id,
-                            type=courier.courier_type,
-                            datetime=datetime.datetime.now().isoformat() + 'Z',
-                            status=False)
-            db_sess.add(assign)
+            new_assign = Assign(owner_id=courier.courier_id,
+                                type=courier.courier_type,
+                                datetime=datetime.datetime.now().isoformat() + 'Z',
+                                status=False)
+            db_sess.add(new_assign)
             for order in new_orders:
                 if order.weight > available_weight:
                     continue
@@ -195,15 +197,15 @@ class AssignOrders(Resource):
 
                 order = db_sess.query(Order).filter(Order.order_id == order.order_id).first()
                 order.owner_id, order.status = courier.courier_id, 1
-                order.assign_id = assign.id
+                order.assign_id = new_assign.id
                 available_weight -= order.weight
                 correct_orders.append(order.order_id)
                 if available_weight == 0:
                     break
             db_sess.commit()
             return {'orders': [{'id': i} for i in correct_orders],
-                    'assign_time': assign.datetime}
-        assign = db_sess.query(Assign).filter(Assign.id == orders[0].assign_id).first()
+                    'assign_time': new_assign.datetime}
+        orders = db_sess.query(Order).filter(Order.assign_id == assign.id).all()
         return {'orders': [{'id': order.order_id} for order in orders],
                 'assign_time': assign.datetime}
 
@@ -266,7 +268,8 @@ class CourierInfo(Resource):
             return {}, 400
         response = {
             'courier_id': courier.courier_id,
-            'courier_type': courier.courier_type,
+            'courier_type': db_sess.query(Type).filter(
+                Type.id == courier.courier_type).first().title,
             'working_hours': courier.working_hours,
             'regions': courier.regions,
             'earnings': 0
@@ -296,8 +299,9 @@ class CourierInfo(Resource):
             average = sum(times_by_region[region]) / len(times_by_region[region])
             if min_time_by_region == -1 or average < min_time_by_region:
                 min_time_by_region = average
-        response['rating'] = float('{:,.2f}'.format(
-            (60 * 60 - min(min_time_by_region, 60 * 60)) / (60 * 60) * 5))
+        if min_time_by_region != -1:
+            response['rating'] = float('{:,.2f}'.format(
+                (60 * 60 - min(min_time_by_region, 60 * 60)) / (60 * 60) * 5))
 
         return response
 
