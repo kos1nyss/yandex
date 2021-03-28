@@ -24,6 +24,9 @@ pip3 install -r requirements.txt
 файл находится в .../project/yandex/
 python3 main.py
 
+
+
+
 --- Запуск тестов ---
 очистить бд перед тестами
 pytest tests/<название файла из папки>
