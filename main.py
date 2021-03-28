@@ -310,6 +310,14 @@ if __name__ == '__main__':
     db_session.global_init()
     db_sess = db_session.create_session()
 
+    types = db_sess.query(Type).all()
+    if not types:
+        foot = Type(id=1, title='foot', weight='10', cf=2)
+        bike = Type(id=2, title='bike', weight='15', cf=5)
+        car = Type(id=3, title='car', weight='50', cf=9)
+        db_sess.add_all([foot, bike, car])
+        db_sess.commit()
+
     api.add_resource(AddCouriers, '/couriers')
     api.add_resource(UpdateCouriers, '/couriers/<int:courier_id>')
     api.add_resource(AddOrders, '/orders')
