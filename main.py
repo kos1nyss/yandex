@@ -106,6 +106,8 @@ class UpdateCouriers(Resource):
                 available_weight -= order.weight
             else:
                 order.status, order.owner_id, order.assign_id = 0, None, None
+        if not orders:
+            db_sess.query(Assign).filter(Assign.owner_id == courier.courier_id).delete()
         db_sess.commit()
 
         tp = db_sess.query(Type).filter(Type.id == courier.courier_type).first().title
@@ -184,25 +186,28 @@ class AssignOrders(Resource):
             correct_orders = []
             if not new_orders:
                 return {'orders': []}
-            new_assign = Assign(owner_id=courier.courier_id,
-                                type=courier.courier_type,
-                                datetime=datetime.datetime.now().isoformat() + 'Z',
-                                status=False)
-            db_sess.add(new_assign)
             for order in new_orders:
                 if order.weight > available_weight:
                     continue
                 if not time_group_interact(courier.working_hours, order.delivery_hours):
                     continue
+                correct_orders.append(order)
+                available_weight -= order.weight
+                if available_weight == 0:
+                    break
 
+            if correct_orders:
+                new_assign = Assign(owner_id=courier.courier_id,
+                                    type=courier.courier_type,
+                                    datetime=datetime.datetime.now().isoformat() + 'Z',
+                                    status=False)
+                db_sess.add(new_assign)
+
+            for order in correct_orders:
                 order = db_sess.query(Order).filter(Order.order_id == order.order_id).first()
                 order.owner_id, order.status = courier.courier_id, 1
                 order.assign_id = new_assign.id
-                available_weight -= order.weight
-                correct_orders.append(order.order_id)
-                if available_weight == 0:
-                    break
-            response = {'orders': [{'id': i} for i in correct_orders]}
+            response = {'orders': [{'id': order.order_id} for order in correct_orders]}
             if correct_orders:
                 db_sess.commit()
                 response['assign_time'] = new_assign.datetime
