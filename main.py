@@ -1,3 +1,6 @@
+#!/usr/bin/python
+
+
 from flask import Flask, request
 from flask_restful import Api, Resource
 from data import db_session
