@@ -197,19 +197,25 @@ class AssignOrders(Resource):
                     break
 
             if correct_orders:
+                dt = datetime.datetime.now().isoformat()
+                dt, ms = dt.split('.')
+                ms = int(float('%.2f' % (int(ms) / 1000000)) * 100)
+
                 new_assign = Assign(owner_id=courier.courier_id,
                                     type=courier.courier_type,
-                                    datetime=datetime.datetime.now().isoformat() + 'Z',
+                                    datetime=f'{dt}.{ms}Z',
                                     status=False)
                 db_sess.add(new_assign)
 
-            for order in correct_orders:
-                order = db_sess.query(Order).filter(Order.order_id == order.order_id).first()
-                order.owner_id, order.status = courier.courier_id, 1
-                order.assign_id = new_assign.id
+                for order in correct_orders:
+                    order = db_sess.query(Order).filter(Order.order_id == order.order_id).first()
+                    order.owner_id, order.status = courier.courier_id, 1
+                    order.assign_id = new_assign.id
+
+                db_sess.commit()
+
             response = {'orders': [{'id': order.order_id} for order in correct_orders]}
             if correct_orders:
-                db_sess.commit()
                 response['assign_time'] = new_assign.datetime
             return response
         orders = db_sess.query(Order).filter(Order.assign_id == assign.id).all()
@@ -249,7 +255,7 @@ class CompleteOrders(Resource):
                 return {}, 400
 
         assign_time = db_sess.query(Assign).filter(Assign.id == order.assign_id).first()
-        assign_time = datetime.datetime.fromisoformat(assign_time.datetime[:-1])
+        assign_time = datetime.datetime.fromisoformat(assign_time.datetime[:-1] + '0000')
         if time < assign_time:
             return {}, 400
 
@@ -297,7 +303,8 @@ class CourierInfo(Resource):
                     order.complete_time[:-1] + '0000').timestamp()))
             times.sort(key=lambda t: t[1])
             times = [(-1,
-                      datetime.datetime.fromisoformat(assign.datetime[:-1]).timestamp())] + times
+                      datetime.datetime.fromisoformat(
+                          assign.datetime[:-1] + '0000').timestamp())] + times
             for i in range(1, len(times)):
                 times_by_region[times[i][0]] = times_by_region.get(times[i][0], []) + \
                                                [times[i][1] - times[i - 1][1]]
