@@ -202,9 +202,11 @@ class AssignOrders(Resource):
                 correct_orders.append(order.order_id)
                 if available_weight == 0:
                     break
-            db_sess.commit()
-            return {'orders': [{'id': i} for i in correct_orders],
-                    'assign_time': new_assign.datetime}
+            response = {'orders': [{'id': i} for i in correct_orders]}
+            if correct_orders:
+                db_sess.commit()
+                response['assign_time'] = new_assign.datetime
+            return response
         orders = db_sess.query(Order).filter(Order.assign_id == assign.id).all()
         return {'orders': [{'id': order.order_id} for order in orders],
                 'assign_time': assign.datetime}
