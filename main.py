@@ -105,7 +105,7 @@ class UpdateCouriers(Resource):
             if available_weight >= order.weight:
                 available_weight -= order.weight
             else:
-                order.status, order.owner_id = 0, None
+                order.status, order.owner_id, order.assign_id = 0, None, None
         db_sess.commit()
 
         tp = db_sess.query(Type).filter(Type.id == courier.courier_type).first().title
@@ -324,4 +324,4 @@ if __name__ == '__main__':
     api.add_resource(AssignOrders, '/orders/assign')
     api.add_resource(CompleteOrders, '/orders/complete')
     api.add_resource(CourierInfo, '/couriers/<int:courier_id>')
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='127.0.0.1', port=8080)
