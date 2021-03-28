@@ -25,3 +25,10 @@ pip3 install -r requirements.txt
 python3 main.py
 
 
+
+
+--- Запуск тестов ---
+очистить бд перед тестами
+pytest tests/<название файла из папки>
+testAddCouriers.py - тесты для первого обработчика
+testAddOrders.py - тесты для третьего обработчика
