@@ -177,7 +177,12 @@ class AddOrders(Resource):
 
 class AssignOrders(Resource):
     def post(self):
-        c_id = request.json['courier_id']
+        try:
+            c_id = request.json['courier_id']
+        except KeyError:
+            return {}, 400
+        if not isinstance(c_id, int):
+            return {}, 400
         courier = db_sess.query(Courier).filter(Courier.courier_id == c_id).first()
         if not courier:
             return {}, 400
