@@ -20,7 +20,29 @@ git clone https://github.com/kos1nyss/yandex
 cd yandex
 pip3 install -r requirements.txt
 
-4-- Запуск сервиса ---
+4-- Настройка автозапуска ---
+создаем файл rest.service в /etc/systemd/system/ с текстом:
+
+  [Unit]
+  Description=REST API
+  Requires=postgresql.service
+  After=postgresql.service
+ 
+  [Service]
+  Type=simple
+  Restart=always
+  WorkingDirectory=/home/entrant/project/yandex (путь для папки с рест-апи)
+  ExecStart=/usr/bin/python3 /home/entrant/project/yandex/main.py (путь до исполняемого файла)
+ 
+  User=entrant
+ 
+  [Install]
+  WantedBy=multi-user.target:
+ 
+sudo systemctl enable rest
+sudo systemctl start rest
+
+5-- Запуск сервиса ---
 файл находится в .../project/yandex/
 python3 main.py
 
