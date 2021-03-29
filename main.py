@@ -61,6 +61,11 @@ class AddCouriers(Resource):
 
 class UpdateCouriers(Resource):
     def patch(self, courier_id):
+        try:
+            courier_id = int(courier_id)
+        except ValueError:
+            return {}, 400
+
         courier = db_sess.query(Courier).filter(Courier.courier_id == courier_id).first()
         if not courier:
             return {}, 400
@@ -68,6 +73,8 @@ class UpdateCouriers(Resource):
         data = request.json
         for key in data:
             if key == 'courier_type':
+                if not isinstance(data[key], str):
+                    return {}, 400
                 tp = db_sess.query(Type).filter(Type.title == data[key]).first()
                 if tp:
                     courier.courier_type = tp.id
@@ -276,6 +283,11 @@ class CompleteOrders(Resource):
 
 class CourierInfo(Resource):
     def get(self, courier_id):
+        try:
+            courier_id = int(courier_id)
+        except ValueError:
+            return {}, 400
+
         courier = db_sess.query(Courier).filter(Courier.courier_id == courier_id).first()
         if not courier:
             return {}, 400
@@ -333,9 +345,9 @@ if __name__ == '__main__':
         db_sess.commit()
 
     api.add_resource(AddCouriers, '/couriers')
-    api.add_resource(UpdateCouriers, '/couriers/<int:courier_id>')
+    api.add_resource(UpdateCouriers, '/couriers/<courier_id>')
     api.add_resource(AddOrders, '/orders')
     api.add_resource(AssignOrders, '/orders/assign')
     api.add_resource(CompleteOrders, '/orders/complete')
-    api.add_resource(CourierInfo, '/couriers/<int:courier_id>')
+    api.add_resource(CourierInfo, '/couriers/<courier_id>')
     app.run(host='0.0.0.0', port=8080)
